@@ -16,8 +16,16 @@ def get_rows():
         top = 219+i*row_height
         bottom = top + row_height
         row_img = whole_board.crop((0, i * row_height, 300, (i+1)*row_height))
+        # region: left, upper, right, lower
         row_img.save(f"images/rows/row_{i+1}.png")
 
+        # get each letter
+        letter_width = 300//5
+        for j in range(5):
+            left = j*letter_width
+            right = left+letter_width
+            letter_img = row_img.crop((left, 0, right, row_height))
+            letter_img.save(f"images/rows/row_{i+1}_letter{j+1}.png")
 
 
 
