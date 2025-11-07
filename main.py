@@ -1,10 +1,10 @@
-import time
-import pyautogui
-from screenGrab import get_rows
 from PIL import Image
+import pyautogui
+import time
+from screenGrab import get_rows
 
 with open("words.txt") as f:
-    word_list = [line.strip() for line in f if line.strip()]
+    word_list = [line.strip().upper() for line in f if line.strip()]
 
 def get_tile_colour(image_path):
     img = Image.open(image_path).convert("RGB")
@@ -18,9 +18,9 @@ def get_tile_colour(image_path):
     return "unknown"
 
 def update_guesses(row_index):
-    guesses = [""] * 5
+    guesses = ["", "", "", "", ""]
     for j in range(5):
-        path = f"images/rows/row_{row_index+1}_letter{j+1}.png"
+        path = f"images/rows/row{row_index+1}_letter{j+1}.png"
         colour = get_tile_colour(path)
         if colour == "green":
             guesses[j] = "X"
@@ -30,55 +30,64 @@ def update_guesses(row_index):
             guesses[j] = ""
     return guesses
 
-def filter_words(word_list, guess, feedback):
+def filter_words(words, guess, feedback):
     filtered = []
-    for word in word_list:
+    for word in words:
         valid = True
-        for i, mark in enumerate(feedback):
+        for i in range(5):
             letter = guess[i]
-            if mark == "X":  # green
+            result = feedback[i]
+
+            if result == "X":  # green
                 if word[i] != letter:
                     valid = False
                     break
-            elif mark == "x":  # yellow
+
+            elif result == "x":  # yellow
+                # must exist somewhere else, not same spot
                 if letter not in word or word[i] == letter:
                     valid = False
                     break
-            elif mark == "":  # grey
-                # only reject if letter isn't marked yellow/green elsewhere
+
+            elif result == "":  # grey
+                # only rule out if letter isn’t green/yellow elsewhere in guess
                 if letter not in [g for g, f in zip(guess, feedback) if f in ("X", "x")] and letter in word:
                     valid = False
                     break
+
         if valid:
             filtered.append(word)
     return filtered
 
 
-def play_wordle():
-    time.sleep(3)
-    current_list = word_list[:]
-    current_guess = "CRANE"
 
-    for attempt in range(6):
-        pyautogui.typewrite(current_guess.lower())
+def guess_word():
+    words = word_list[:]
+    guess = "CRANE"
+
+    for i in range(6):
+        print(f"Attempt {i+1}: {guess}")
+        pyautogui.typewrite(guess.lower())
         pyautogui.press("enter")
         time.sleep(2)
 
-        get_rows()  # capture new board
-        feedback = update_guesses(attempt)
-        print(f"Attempt {attempt+1}: {current_guess} -> {feedback}")
+        get_rows()
+        fb = update_guesses(i)
+        print(f"Feedback: {fb}")
 
-        if feedback == ["X", "X", "X", "X", "X"]:
+        if fb == ["X", "X", "X", "X", "X"]:
             print("Solved.")
             return
 
-        current_list = filter_words(current_list, current_guess, feedback)
-        if not current_list:
+        words = filter_words(words, guess, fb)
+        print(f"{len(words)} words left")
+
+        if not words:
             print("No valid words left.")
             return
 
-        current_guess = current_list[0]  # simplest next guess
+        guess = words[0]
 
     print("Failed to solve in 6 guesses.")
 
-play_wordle()
+guess_word()
